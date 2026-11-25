@@ -68,6 +68,12 @@ claude mcp add a11y-ja -- npx -y a11y-ja-mcp
 | `contrast_scan` | ページ内のテキストのコントラストを一括検査。背景画像・グラデーション上の文字は「要目視確認」に分類 |
 | `audit_urls` | 複数ページを一括検査して Markdown / JSON のレポートを作成（ファイル保存可） |
 
+**出力形式**: `axe_scan` / `page_structure` / `tab_order` / `images` / `contrast_scan` は `format` 引数で出力を選べます。
+
+- `markdown`（既定）: 人が読む日本語のレポート
+- `json`: 達成基準・JIS 対象かどうか・該当要素（セレクタ・HTML）などを含む構造化データ。エージェントが結果を解釈してそのまま修正したいとき向け
+- `raw`（`axe_scan` のみ）: `json` に axe-core の `axe.run()` の生の結果を加えたもの
+
 **プロンプト**: `a11y_audit`（引数: `url`, `level`）… 上のツールを使った監査手順とレポートのテンプレート
 
 ### 使い方の例

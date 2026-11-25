@@ -75,6 +75,8 @@ export interface AxeResult {
   /** 自動判定できず、人の確認が必要なもの */
   incomplete: Issue[];
   passCount: number;
+  /** includeRaw を指定したときだけ入る、axe.run() の結果そのもの（violations / incomplete） */
+  raw?: { violations: unknown[]; incomplete: unknown[] };
 }
 
 interface RawNode {
@@ -126,6 +128,8 @@ export interface RunAxeOptions {
   /** 検査範囲を絞る CSS セレクタ */
   include?: string;
   lang?: "ja" | "en";
+  /** axe.run() の生の結果も返すか */
+  includeRaw?: boolean;
 }
 
 export async function runAxe(page: Page, opts: RunAxeOptions = {}): Promise<AxeResult> {
@@ -163,5 +167,6 @@ export async function runAxe(page: Page, opts: RunAxeOptions = {}): Promise<AxeR
     violations: sortIssues((raw.violations as RawResult[]).map(normalize)),
     incomplete: sortIssues((raw.incomplete as RawResult[]).map(normalize)),
     passCount: raw.passCount,
+    ...(opts.includeRaw ? { raw: { violations: raw.violations as unknown[], incomplete: raw.incomplete as unknown[] } } : {}),
   };
 }
