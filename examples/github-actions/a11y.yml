@@ -1,0 +1,22 @@
+# 自分のサイトを PR ごとに検査する例。.github/workflows/ に置いて使う
+name: Accessibility
+on: pull_request
+jobs:
+  a11y:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+      # 例: ビルド結果をローカルで配信する
+      - run: npx --yes serve -l 3000 dist &
+      - run: npx --yes wait-on http://localhost:3000
+      - name: a11y-ja-mcp で検査
+        run: npx --yes a11y-ja-mcp audit --urls-file a11y-urls.txt --level wcag22aa --fail-on serious --out a11y-report.md
+        env:
+          A11Y_CHROME_PATH: /usr/bin/google-chrome
+      - name: レポートをジョブのサマリーに表示
+        if: always()
+        run: cat a11y-report.md >> "$GITHUB_STEP_SUMMARY"
