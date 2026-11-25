@@ -33,6 +33,13 @@ async function pageFor(url?: string) {
   return page;
 }
 
+/** 構造化した結果を JSON 文字列で返す（エージェントが自分で解釈・修正したいとき用） */
+const json = (v: unknown) => text(JSON.stringify(v, null, 2));
+const formatArg = z
+  .enum(["markdown", "json"])
+  .default("markdown")
+  .describe("出力形式。markdown は人が読むレポート、json はエージェントが処理しやすい構造化データ");
+
 const urlArg = z.string().url().optional().describe("検査する URL。省略すると現在開いているページを検査");
 const selectorArg = z.string().describe("対象要素の CSS セレクタ");
 
@@ -193,13 +200,20 @@ export function createServer(version: string): McpServer {
         best_practices: z.boolean().default(false).describe("WCAG 外のベストプラクティスも含めるか"),
         include: z.string().optional().describe("検査範囲を絞る CSS セレクタ（例: main, #modal）"),
         lang: z.enum(["ja", "en"]).default("ja").describe("メッセージの言語"),
-        max_nodes: z.number().int().min(1).max(100).default(10).describe("1 ルールあたり表示する要素数"),
+        max_nodes: z.number().int().min(1).max(100).default(10).describe("1 ルールあたり表示する要素数（markdown のみ）"),
+        format: z
+          .enum(["markdown", "json", "raw"])
+          .default("markdown")
+          .describe(
+            "出力形式。markdown は日本語のレポート、json は達成基準・JIS 対象・該当要素（セレクタ・HTML）を含む構造化データ、raw は json に axe.run() の生の結果を加えたもの",
+          ),
       },
     },
-    async ({ url, level, best_practices, include, lang, max_nodes }) => {
+    async ({ url, level, best_practices, include, lang, max_nodes, format }) => {
       try {
         const page = await pageFor(url);
-        const r = await runAxe(page, { level, bestPractices: best_practices, include, lang });
+        const r = await runAxe(page, { level, bestPractices: best_practices, include, lang, includeRaw: format === "raw" });
+        if (format !== "markdown") return json(r);
         return text(resultToMarkdown(r, { maxNodes: max_nodes }));
       } catch (e) {
         return fail(e);
@@ -212,11 +226,12 @@ export function createServer(version: string): McpServer {
     {
       title: "ページ構造",
       description: "見出しのアウトライン、ランドマーク、lang、タイトル、スキップリンク、iframe、ラベルのないフォーム部品を調べる",
-      inputSchema: { url: urlArg },
+      inputSchema: { url: urlArg, format: formatArg },
     },
-    async ({ url }) => {
+    async ({ url, format }) => {
       try {
-        return text(structureToMarkdown(await getStructure(await pageFor(url))));
+        const s = await getStructure(await pageFor(url));
+        return format === "json" ? json(s) : text(structureToMarkdown(s));
       } catch (e) {
         return fail(e);
       }
@@ -229,11 +244,16 @@ export function createServer(version: string): McpServer {
       title: "Tab 順序",
       description:
         "実際に Tab キーを押してフォーカスの移動順を記録する。見えない要素へのフォーカス、名前のない要素、フォーカス表示の有無、正の tabindex、キーボードトラップを指摘する",
-      inputSchema: { url: urlArg, max: z.number().int().min(1).max(500).default(100).describe("Tab を押す最大回数") },
+      inputSchema: {
+        url: urlArg,
+        max: z.number().int().min(1).max(500).default(100).describe("Tab を押す最大回数"),
+        format: formatArg,
+      },
     },
-    async ({ url, max }) => {
+    async ({ url, max, format }) => {
       try {
-        return text(tabOrderToMarkdown(await getTabOrder(await pageFor(url), max)));
+        const r = await getTabOrder(await pageFor(url), max);
+        return format === "json" ? json(r) : text(tabOrderToMarkdown(r));
       } catch (e) {
         return fail(e);
       }
@@ -246,11 +266,12 @@ export function createServer(version: string): McpServer {
       title: "画像と代替テキスト",
       description:
         "img / svg / role=img / input[type=image] / area を一覧にし、代替テキストあり・装飾（alt=\"\"）・alt 属性なし・名前なしに分類する。ファイル名や「画像」だけの alt、リンク画像の名前抜けなども指摘する",
-      inputSchema: { url: urlArg },
+      inputSchema: { url: urlArg, format: formatArg },
     },
-    async ({ url }) => {
+    async ({ url, format }) => {
       try {
-        return text(imagesToMarkdown(await getImages(await pageFor(url))));
+        const images = await getImages(await pageFor(url));
+        return format === "json" ? json(images) : text(imagesToMarkdown(images));
       } catch (e) {
         return fail(e);
       }
@@ -308,11 +329,18 @@ export function createServer(version: string): McpServer {
         url: urlArg,
         level: z.enum(["AA", "AAA"]).default("AA"),
         selector: z.string().optional().describe("検査範囲を絞る CSS セレクタ"),
+        format: formatArg,
       },
     },
-    async ({ url, level, selector }) => {
+    async ({ url, level, selector, format }) => {
       try {
         const items = await scanContrast(await pageFor(url), { selector });
+        if (format === "json") {
+          // 合格した要素まで全部返すと長くなるので、不合格と要目視確認だけを返す
+          const failures = items.filter((i) => !i.needsReview && !(level === "AA" ? i.passAA : i.passAAA));
+          const needsReview = items.filter((i) => i.needsReview);
+          return json({ level, checked: items.length, failures, needsReview });
+        }
         return text(contrastScanToMarkdown(items, level));
       } catch (e) {
         return fail(e);
