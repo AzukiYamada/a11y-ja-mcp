@@ -51,6 +51,26 @@ test("div で作ったモーダルは、キーボードで開けないことを�
   await page.close();
 });
 
+// examples/modals/ は、正常なモーダルから 1 か所だけを壊したもの。
+// 狙った 1 項目だけが不合格になること（見逃しも誤検出もないこと）を確かめる
+const MODAL_CASES: [string, string | null][] = [
+  ["ok", null],
+  ["focus-stays", "開いたときにフォーカスがモーダルの中へ移る"],
+  ["tab-escapes", "Tab / Shift+Tab でフォーカスがモーダルの外（背面）へ出ない"],
+  ["no-escape", "Escape キーで閉じられる"],
+  ["no-return", "閉じたあと、フォーカスが開くボタンに戻る"],
+];
+for (const [file, expected] of MODAL_CASES) {
+  test(`モーダルの検出精度: ${file}`, async () => {
+    const page = await newPage();
+    await gotoUrl(page, pathToFileURL(fileURLToPath(new URL(`../../examples/modals/${file}.html`, import.meta.url))).href);
+    const r = await checkModal(page, { trigger: "#open" });
+    await page.close();
+    const failed = r.checks.filter((c) => c.ok === false).map((c) => c.label);
+    assert.deepEqual(failed, expected ? [expected] : []);
+  });
+}
+
 test("良い開閉 UI はすべて合格する", async () => {
   const page = await open();
   const r = await checkDisclosure(page, { trigger: "#acc-good" });
