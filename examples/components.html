@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>状態が変わる UI の検証用ページ</title>
+<style>
+  .backdrop { position: fixed; inset: 0; background: rgb(0 0 0 / .4); display: none; align-items: center; justify-content: center; }
+  .backdrop.open { display: flex; }
+  .modal { background: #fff; padding: 16px; min-width: 280px; }
+  .fake-btn { display: inline-block; padding: 4px 8px; border: 1px solid #333; cursor: pointer; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>状態が変わる UI の検証用ページ</h1>
+
+  <h2>モーダル</h2>
+  <!-- 良い例: button で開き、フォーカス移動・フォーカストラップ・Escape・フォーカス返却がある -->
+  <button id="open-good" type="button">予約する（良い例）</button>
+  <!-- 悪い例: role はあるが、フォーカス管理も Escape もない -->
+  <button id="open-bad" type="button">予約する（悪い例）</button>
+  <!-- もっと悪い例: div のクリックでしか開かず、モーダルにも role がない -->
+  <span id="open-div" class="fake-btn" onclick="document.getElementById('div-backdrop').classList.add('open')">予約する（div）</span>
+
+  <h2>開閉 UI</h2>
+  <!-- 良い例 -->
+  <button id="acc-good" type="button" aria-expanded="false" aria-controls="acc-good-panel">配送について（良い例）</button>
+  <div id="acc-good-panel" hidden>3 日以内に発送します。</div>
+  <!-- 悪い例: div のクリックだけ、aria-expanded なし -->
+  <div id="acc-bad" class="fake-btn" onclick="document.getElementById('acc-bad-panel').hidden ^= true">返品について（悪い例）</div>
+  <div id="acc-bad-panel" hidden>30 日以内なら返品できます。</div>
+</main>
+
+<div id="good-backdrop" class="backdrop">
+  <div id="good-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="good-title">
+    <h2 id="good-title">予約日を選ぶ</h2>
+    <label>日付 <input type="date"></label>
+    <button type="button" data-close>キャンセル</button>
+    <button type="button" data-close>予約する</button>
+  </div>
+</div>
+
+<div id="bad-backdrop" class="backdrop">
+  <div id="bad-modal" class="modal" role="dialog">
+    <h2>予約日を選ぶ</h2>
+    <label>日付 <input type="date"></label>
+    <button type="button" data-close-bad>閉じる</button>
+  </div>
+</div>
+
+<div id="div-backdrop" class="backdrop">
+  <div class="modal">
+    <p>予約日を選ぶ</p>
+    <span class="fake-btn" onclick="document.getElementById('div-backdrop').classList.remove('open')">閉じる</span>
+  </div>
+</div>
+
+<script>
+  // 良い例のモーダル
+  const goodBackdrop = document.getElementById("good-backdrop");
+  const goodModal = document.getElementById("good-modal");
+  let opener = null;
+  function openGood() {
+    opener = document.activeElement;
+    goodBackdrop.classList.add("open");
+    goodModal.querySelector("input").focus();
+  }
+  function closeGood() {
+    goodBackdrop.classList.remove("open");
+    opener?.focus();
+  }
+  document.getElementById("open-good").addEventListener("click", openGood);
+  goodModal.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeGood));
+  goodModal.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") return closeGood();
+    if (e.key !== "Tab") return;
+    const f = [...goodModal.querySelectorAll("input, button")];
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+
+  // 悪い例のモーダル
+  document.getElementById("open-bad").addEventListener("click", () => document.getElementById("bad-backdrop").classList.add("open"));
+  document.querySelector("[data-close-bad]").addEventListener("click", () => document.getElementById("bad-backdrop").classList.remove("open"));
+
+  // 良い例の開閉 UI
+  const acc = document.getElementById("acc-good");
+  acc.addEventListener("click", () => {
+    const open = acc.getAttribute("aria-expanded") === "true";
+    acc.setAttribute("aria-expanded", String(!open));
+    document.getElementById("acc-good-panel").hidden = open;
+  });
+</script>
+</body>
+</html>
