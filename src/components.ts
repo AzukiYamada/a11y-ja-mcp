@@ -157,7 +157,9 @@ export async function checkModal(
       (e) => window.__a11yja.isVisible(e) && !(e as HTMLButtonElement).disabled,
     ).length,
   );
-  const tabs = Math.min(Math.max(focusableCount + 2, 3), opts.maxTabs ?? 30);
+  // 日付の入力欄のように、1 つの要素の中で何回も Tab が止まる部品があるので、要素数より多めに押す。
+  // 外に出たらその時点で止めるので、押しすぎても困らない
+  const tabs = Math.min(Math.max(focusableCount * 5 + 5, 10), opts.maxTabs ?? 50);
   let escaped: string | null = null;
   for (let i = 0; i < tabs && !escaped; i++) {
     await page.keyboard.press("Tab");
@@ -193,8 +195,9 @@ export async function checkModal(
   }
 
   // 6. Escape で閉じられるか
-  if (!movedIn) {
-    // フォーカスがモーダル外だと Escape を受け取れない実装が多いので、中へ移してから試す
+  if (!(await inside())) {
+    // フォーカスがモーダル外（開いた直後から外にある、Tab で外へ抜けた）だと Escape を受け取れない実装が多いので、
+    // 中へ戻してから試す。そうしないと「Escape で閉じられない」と誤って判定してしまう
     await page.$eval(dialogSel, (d) => {
       const first = d.querySelector<HTMLElement>('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       (first ?? (d as HTMLElement)).focus();
