@@ -1,6 +1,6 @@
 {
   "name": "a11y-ja-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "AIエージェントにページを操作させてアクセシビリティを検査するMCPサーバー（axe-core / WCAG 2.2 / JIS X 8341-3 / CI対応）",
   "main": "dist/index.js",
   "scripts": {
