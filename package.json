@@ -1,7 +1,7 @@
 {
   "name": "a11y-ja-mcp",
   "version": "0.2.0",
-  "description": "日本語でアクセシビリティ検査できるMCPサーバー（axe-core / WCAG 2.2 / JIS X 8341-3 / CI対応）",
+  "description": "AIエージェントにページを操作させてアクセシビリティを検査するMCPサーバー（axe-core / WCAG 2.2 / JIS X 8341-3 / CI対応）",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && node scripts/gen-skill.mjs",
