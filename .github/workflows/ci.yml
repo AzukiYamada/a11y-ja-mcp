@@ -1,0 +1,20 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      # サンプルページで CLI を動かす（違反があるページなので --fail-on none）
+      - run: node dist/index.js audit "file://$PWD/examples/bad.html" --fail-on none --out a11y-report.md
+        env:
+          A11Y_CHROME_PATH: /usr/bin/google-chrome
+      - run: cat a11y-report.md >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,56 @@
+{
+  "name": "a11y-ja-mcp",
+  "version": "0.2.0",
+  "description": "AIエージェントにページを操作させてアクセシビリティを検査するMCPサーバー（axe-core / WCAG 2.2 / JIS X 8341-3 / CI対応）",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && node scripts/gen-skill.mjs",
+    "dev": "tsc --watch",
+    "test": "npm run build && node --test \"dist/test/*.test.js\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "accessibility",
+    "a11y",
+    "axe-core",
+    "wcag",
+    "jis-x-8341-3",
+    "claude",
+    "model-context-protocol"
+  ],
+  "author": "AzukiYamada",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "axe-core": "^4.14.1",
+    "puppeteer-core": "^25.18.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.8",
+    "typescript": "^7.0.2"
+  },
+  "bin": {
+    "a11y-ja-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "!dist/test",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AzukiYamada/a11y-ja-mcp.git"
+  },
+  "homepage": "https://github.com/AzukiYamada/a11y-ja-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/AzukiYamada/a11y-ja-mcp/issues"
+  }
+}

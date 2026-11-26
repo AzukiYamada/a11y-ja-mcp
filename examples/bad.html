@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title></title>
+<style>
+  .faint { color: #999; }
+  .hero { background: linear-gradient(#036, #39f); color: #fff; padding: 8px; }
+  button.nofocus:focus { outline: none; }
+  .sr-bad { position: absolute; left: -9999px; }
+</style>
+</head>
+<body>
+  <a href="#content">本文へスキップ</a>
+  <div class="hero">グラデーションの上の文字</div>
+  <nav><a href="/">ホーム</a><a href="/about">会社概要</a></nav>
+  <nav><a href="/a">A</a></nav>
+  <h1>サンプルショップ</h1>
+  <h3>おすすめ商品</h3>
+  <p class="faint">薄いグレーの説明文です。</p>
+  <img src="product-01.jpg">
+  <img src="banner.png" alt="banner.png">
+  <img src="deco.png" alt="">
+  <a href="/cart"><img src="cart.svg" alt=""></a>
+  <svg width="16" height="16"><circle cx="8" cy="8" r="8"/></svg>
+  <form>
+    <input type="text" placeholder="メールアドレス">
+    <button class="nofocus" tabindex="3">送信</button>
+  </form>
+  <a class="sr-bad" href="/hidden">隠れたリンク</a>
+  <iframe src="about:blank"></iframe>
+</body>
+</html>
