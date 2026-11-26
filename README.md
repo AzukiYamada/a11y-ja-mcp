@@ -66,6 +66,8 @@ claude mcp add a11y-ja -- npx -y a11y-ja-mcp
 | `images` | 画像を「代替テキストあり / 装飾（alt=""）/ alt 属性なし / 名前なし」に分類。ファイル名だけの alt、リンク画像の名前抜けなども指摘 |
 | `contrast_ratio` | 2 色のコントラスト比と、AA / AAA・通常の文字 / 大きな文字 / UI 部品ごとの合否 |
 | `contrast_scan` | ページ内のテキストのコントラストを一括検査。背景画像・グラデーション上の文字は「要目視確認」に分類 |
+| `check_modal` | モーダルを Enter で開き、フォーカスがモーダル内へ移るか・Tab で背面へ抜けないか・Escape で閉じられるか・閉じたあと開くボタンへフォーカスが戻るかを検査。開いた状態で axe-core もかける |
+| `check_disclosure` | アコーディオンやメニューボタンなどの開閉 UI を検査。Enter / Space で開閉できるか、`aria-expanded` が正しく切り替わるか |
 | `audit_urls` | 複数ページを一括検査して Markdown / JSON のレポートを作成（ファイル保存可） |
 
 **出力形式**: `axe_scan` / `page_structure` / `tab_order` / `images` / `contrast_scan` は `format` 引数で出力を選べます。

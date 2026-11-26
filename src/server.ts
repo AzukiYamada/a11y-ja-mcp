@@ -16,6 +16,7 @@ import {
   structureToMarkdown,
   tabOrderToMarkdown,
 } from "./inspect.js";
+import { checkDisclosure, checkModal, disclosureToMarkdown, modalToMarkdown } from "./components.js";
 import { AUDIT_TEMPLATE } from "./prompts.js";
 import { resultToMarkdown } from "./report.js";
 
@@ -342,6 +343,56 @@ export function createServer(version: string): McpServer {
           return json({ level, checked: items.length, failures, needsReview });
         }
         return text(contrastScanToMarkdown(items, level));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  // ---------------------------------------------------------------- 操作したあとの状態の検査
+  server.registerTool(
+    "check_modal",
+    {
+      title: "モーダルの検査",
+      description:
+        "モーダル（ダイアログ）を開くボタンにフォーカスして Enter で開き、キーボード操作で次を確かめる: キーボードで開けるか、フォーカスがモーダル内へ移るか、Tab で背面へ抜けないか、役割と名前があるか、Escape で閉じられるか、閉じたあと開くボタンへフォーカスが戻るか。開いた状態のモーダルに axe-core もかける",
+      inputSchema: {
+        url: urlArg,
+        trigger: z.string().describe("モーダルを開くボタンの CSS セレクタ"),
+        dialog: z
+          .string()
+          .optional()
+          .describe("モーダル本体の CSS セレクタ。省略すると、開いたあとに新しく表示された role=\"dialog\" などの要素を探す"),
+        format: formatArg,
+      },
+    },
+    async ({ url, trigger, dialog, format }) => {
+      try {
+        const r = await checkModal(await pageFor(url), { trigger, dialog });
+        return format === "json" ? json(r) : text(modalToMarkdown(r));
+      } catch (e) {
+        return fail(e);
+      }
+    },
+  );
+
+  server.registerTool(
+    "check_disclosure",
+    {
+      title: "開閉 UI の検査",
+      description:
+        "アコーディオン、メニューボタン、ドロップダウンなど、ボタンで中身を開閉する UI を検査する。ボタンとしての役割と名前、aria-expanded の有無、Enter / Space で開閉できるか、aria-expanded と実際の表示が一致しているかを確かめる",
+      inputSchema: {
+        url: urlArg,
+        trigger: z.string().describe("開閉するボタンの CSS セレクタ"),
+        content: z.string().optional().describe("開閉する中身の CSS セレクタ。省略すると aria-controls から探す"),
+        format: formatArg,
+      },
+    },
+    async ({ url, trigger, content, format }) => {
+      try {
+        const r = await checkDisclosure(await pageFor(url), { trigger, content });
+        return format === "json" ? json(r) : text(disclosureToMarkdown(r));
       } catch (e) {
         return fail(e);
       }
