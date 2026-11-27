@@ -2,23 +2,32 @@
 
 **English** | [日本語](https://github.com/AzukiYamada/a11y-ja-mcp/blob/main/README.ja.md)
 
-**An MCP server that lets AI agents operate pages and test their accessibility**
+**An MCP server that lets AI agents test accessibility while operating a real browser**
 
-It gives agents such as Claude Code and Cursor tools to drive a local Chrome.
-Instead of checking only the HTML right after the page loads, it tests **the page as it is actually used**: after pressing Tab, after opening a modal or a menu, and so on.
-Every finding is annotated with its WCAG success criterion and whether it falls under JIS X 8341-3 (Japan's web accessibility standard).
+When a coding agent such as Claude Code builds UI for you, this MCP server lets you follow up with "check the accessibility too, and fix any problems."
+It opens the page in a browser and runs axe-core, and it also opens modals and menus, operates them with the keyboard, and checks how focus behaves.
+Each finding comes with its WCAG success criterion and whether it falls under JIS X 8341-3 (Japan's web accessibility standard).
 
-For example, a modal with broken focus handling scores 100 in Lighthouse and passes axe-core with no issues, but a11y-ja-mcp detects it ([detection comparison](#detection-comparison)).
+> **Language note:** Reports are in Japanese. axe-core messages can be switched to English with `lang: "en"` (`axe_scan`) or `--lang en` (CLI). The JSON output (`format: "json"`) is structured data, so agents can use it regardless of language.
 
-> **Language note:** Reports and tool descriptions are in Japanese. axe-core messages can be switched to English with `lang: "en"` (`axe_scan`) or `--lang en` (CLI). The JSON output (`format: "json"`) is structured data, so it is easy to use regardless of language.
+## Testing while operating the browser
 
-## Features
+It launches Chrome with Puppeteer so the agent can operate the browser.
+You can run axe-core with a menu or modal open, and there are dedicated tools for testing keyboard interaction.
 
-- **Tests by operating the page**: presses Tab for real and records focus order, focus visibility, and keyboard traps
-- **Tests stateful UI**: operates modals and disclosure widgets (accordions, menu buttons, etc.) with the keyboard and checks focus movement and closing behavior against the WAI-ARIA APG patterns
-- **JIS X 8341-3 support**: marks each finding as JIS-applicable or not, and can test against criteria equivalent to JIS X 8341-3:2016 AA
-- **CI support**: runs the same checks from a CLI and returns a report and an exit code
-- **Other checks**: automated axe-core scans, image alt text, contrast, headings and landmarks
+- `tab_order`: checks the focus order when pressing Tab, and whether focus is visible
+- `check_modal`: checks focus and keyboard interaction when a modal opens and closes
+- `check_disclosure`: checks opening and closing of accordions and similar widgets, and their ARIA state
+
+`check_modal` actually presses Tab and Escape to check that focus does not leave the modal and that it returns to the original element after closing.
+The modal and disclosure checks follow the interaction patterns in the [WAI-ARIA Authoring Practices Guide (APG)](https://www.w3.org/WAI/ARIA/apg/).
+
+A modal with only its focus handling broken scores 100 in Lighthouse and passes axe-core with no issues, but `check_modal` detects it ([detection comparison](#detection-comparison)).
+
+## WCAG and JIS X 8341-3
+
+Each finding includes its WCAG success criterion number.
+Success criteria of WCAG 2.0 that correspond to JIS X 8341-3:2016 up to conformance level AA are marked as "JIS-applicable". You can also test against criteria equivalent to JIS X 8341-3:2016 AA.
 
 ## Setup
 
@@ -52,9 +61,9 @@ claude mcp add a11y-ja -- npx -y a11y-ja-mcp
 
 Just ask your agent.
 
-> Audit http://localhost:3000 for accessibility. The target is WCAG 2.2 AA.
+> Check the accessibility of http://localhost:3000. The target is WCAG 2.2 AA.
 
-> Check that the modal opened by the "Book" button can be opened and closed with the keyboard only.
+> Operate the booking form modal with the keyboard and check whether focus behaves correctly.
 
 > Submit the contact form empty and check the error messages using only the keyboard.
 
@@ -90,7 +99,7 @@ Results separate problems related to WCAG success criteria (❌) from items that
 | `images` | Classifies images as "has alt text / decorative (alt="") / missing alt attribute / no name". Also flags file names used as alt text and linked images without names |
 | `contrast_ratio` | Contrast ratio of two colors, with pass/fail for AA / AAA, normal text / large text / UI components |
 | `contrast_scan` | Checks the contrast of all text on the page. Text on background images or gradients is marked as "needs visual check" |
-| `audit_urls` | Audits multiple pages at once and creates a Markdown / JSON report (can be saved to a file) |
+| `audit_urls` | Runs axe-core on multiple pages at once and creates a Markdown / JSON report (can be saved to a file) |
 
 Testing tools let you choose the output with the `format` argument.
 
@@ -116,7 +125,8 @@ I prepared a correct modal and versions of it with exactly one thing broken ([ex
 
 ## CLI (for CI)
 
-The same checks as the MCP server can be run from the CLI.
+Separately from the MCP server, there is a CLI. It runs axe-core on multiple URLs in one go, so you can add it to CI.
+Checks that involve operating the page, such as `tab_order`, `check_modal`, and `check_disclosure`, are available only through MCP.
 
 ```sh
 npx a11y-ja-mcp audit https://example.com https://example.com/about \
@@ -133,9 +143,11 @@ npx a11y-ja-mcp audit https://example.com https://example.com/about \
 | `--best-practices` | Also include best practices outside WCAG |
 | `--lang` | `ja` (default) / `en` |
 
-A GitHub Actions example is in [examples/github-actions/a11y.yml](examples/github-actions/a11y.yml). The report can be shown in the job summary.
+A GitHub Actions example is in [examples/github-actions/a11y.yml](examples/github-actions/a11y.yml). Writing the report to `$GITHUB_STEP_SUMMARY` shows the results in the job summary.
 
 ## Limitations
+
+Passing these checks does not mean a page conforms to WCAG or JIS. The goal is to hand the checks that can be done mechanically to the agent, so people can spend their time on what needs human judgment.
 
 - Automated testing finds only some WCAG issues. Screen reader output, video captions, and whether alt text is appropriate still need human review
 - `tab_order` judges focus visibility by whether styles such as outline change before and after focus
@@ -159,6 +171,10 @@ Test pages are in `examples/`.
 | `trap.html` | A page with a keyboard trap |
 | `components.html` | Good and bad examples of modals and disclosure widgets |
 | `modals/` | A correct modal and versions with exactly one thing broken (used in the detection comparison) |
+
+## Feedback
+
+If there is a check you would like to see, Issues and PRs are welcome.
 
 ## License
 
